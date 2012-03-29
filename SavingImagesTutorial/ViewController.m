@@ -262,35 +262,35 @@
     // Contains a list of all the BUTTONS
     allImages = [images mutableCopy];
     
-    
     // Remove old grid
-     for (UIView *view in [photoScrollView subviews]) {
-         if ([view isKindOfClass:[UIButton class]]) {
-             [view removeFromSuperview];
-         }
-     }
+    for (UIView *view in [photoScrollView subviews]) {
+        if ([view isKindOfClass:[UIButton class]]) {
+            [view removeFromSuperview];
+        }
+    }
     
     // This method sets up the downloaded images and places them nicely in a grid
     UIButton *button;
 
     //Create a button for each image
-    for (int i=0; i<images.count; i++) {
+    for (int i = 0; i < images.count; i++) {
         PFObject *eachObject = [images objectAtIndex:i];
         
-        if (!eachObject){
+        if (!eachObject) {
             return;
         }
        
         PFFile *theImage = [eachObject objectForKey:@"imageFile"];
 
         __block NSData *imageData;
-        dispatch_queue_t queue = dispatch_queue_create("getImageData",NULL);                        
-        dispatch_sync(queue,^{
+        dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+        dispatch_sync(queue, ^{
             imageData = [theImage getData];
         });
+        
         UIImage *image = [UIImage imageWithData:imageData];
         
-        if (image){
+        if (image) {
             button = [UIButton buttonWithType:UIButtonTypeCustom];
             [button setImage:image forState:UIControlStateNormal];
             button.showsTouchWhenHighlighted = YES;
@@ -318,12 +318,12 @@
 }
 
 - (void)buttonTouched:(id)sender{
-    //When picture is touched, open a viewcontroller with the image
+    // When picture is touched, open a viewcontroller with the image
     PFObject *theObject = (PFObject *)[allImages objectAtIndex:[sender tag]];
     PFFile *theImage = [theObject objectForKey:@"imageFile"];
     
     __block NSData *imageData;
-    dispatch_queue_t queue = dispatch_queue_create("getImageData",NULL);                        
+    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
     dispatch_sync(queue,^{
         imageData = [theImage getData];
     });
@@ -340,28 +340,6 @@
 - (void)viewDidLoad
 {
     [super viewDidLoad];
-	// Do any additional setup after loading the view, typically from a nib.
-    NSLog(@"View did load");
-    PFUser *currentUser = [PFUser currentUser];
-    if (currentUser) {
-//        [self refresh:nil];
-    } else {
-        // Dummy username and password
-        PFUser *user = [PFUser user];
-        user.username = @"Matt";
-        user.password = @"password";
-        user.email = @"Matt@example.com";
-        
-        [user signUpInBackgroundWithBlock:^(BOOL succeeded, NSError *error) {
-            if (!error) {
-                [self refresh:nil];
-            } else {
-                [PFUser logInWithUsername:@"Matt" password:@"password"];
-                [self refresh:nil];
-            }
-        }];
-    }
-    
     allImages = [[NSMutableArray alloc] init];
 }
 

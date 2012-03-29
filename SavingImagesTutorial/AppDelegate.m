@@ -22,14 +22,32 @@
     // ****************************************************************************
     // Fill in with your Parse credentials:
     // ****************************************************************************
-    
     [Parse setApplicationId:@"your_application_id" clientKey:@"your_client_key"];
-
+    
     // Wipe out old user defaults
     if ([[NSUserDefaults standardUserDefaults] objectForKey:@"objectIDArray"]){
         [[NSUserDefaults standardUserDefaults] setObject:nil forKey:@"objectIDArray"];
     }
     [[NSUserDefaults standardUserDefaults] synchronize];
+    
+    // Simple way to create a user or log in the existing user
+    // For your app, you will probably want to present your own login screen
+    PFUser *currentUser = [PFUser currentUser];
+
+    if (!currentUser) {
+        // Dummy username and password
+        PFUser *user = [PFUser user];
+        user.username = @"Matt";
+        user.password = @"password";
+        user.email = @"Matt@example.com";
+        
+        [user signUpInBackgroundWithBlock:^(BOOL succeeded, NSError *error) {
+            if (error) {
+                // Assume the error is because the user already existed.
+                [PFUser logInWithUsername:@"Matt" password:@"password"];
+            }
+        }];
+    }
     
     self.viewController = [[ViewController alloc] initWithNibName:@"ViewController" bundle:nil];
     self.window.rootViewController = self.viewController;
