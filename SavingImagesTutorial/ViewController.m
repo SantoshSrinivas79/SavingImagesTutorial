@@ -262,71 +262,67 @@
     // Contains a list of all the BUTTONS
     allImages = [images mutableCopy];
     
-    // Remove old grid
-    for (UIView *view in [photoScrollView subviews]) {
-        if ([view isKindOfClass:[UIButton class]]) {
-            [view removeFromSuperview];
-        }
-    }
-    
     // This method sets up the downloaded images and places them nicely in a grid
-    UIButton *button;
-
-    //Create a button for each image
-    for (int i = 0; i < images.count; i++) {
-        PFObject *eachObject = [images objectAtIndex:i];
+    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+    dispatch_async(queue, ^{
+        NSMutableArray *imageDataArray = [NSMutableArray array];
         
-        if (!eachObject) {
-            return;
+        // Iterate over all images and get the data from the PFFile
+        for (int i = 0; i < images.count; i++) {
+            PFObject *eachObject = [images objectAtIndex:i];
+            PFFile *theImage = [eachObject objectForKey:@"imageFile"];
+            NSData *imageData = [theImage getData];
+            UIImage *image = [UIImage imageWithData:imageData];
+            [imageDataArray addObject:image];
         }
-       
-        PFFile *theImage = [eachObject objectForKey:@"imageFile"];
-
-        __block NSData *imageData;
-        dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-        dispatch_sync(queue, ^{
-            imageData = [theImage getData];
+                   
+        // Dispatch to main thread to update the UI
+        dispatch_async(dispatch_get_main_queue(), ^{
+            // Remove old grid
+            for (UIView *view in [photoScrollView subviews]) {
+                if ([view isKindOfClass:[UIButton class]]) {
+                    [view removeFromSuperview];
+                }
+            }
+            
+            // Create the buttons necessary for each image in the grid
+            for (int i = 0; i < [imageDataArray count]; i++) {
+                PFObject *eachObject = [images objectAtIndex:i];
+                UIButton *button = [UIButton buttonWithType:UIButtonTypeCustom];
+                UIImage *image = [imageDataArray objectAtIndex:i];
+                [button setImage:image forState:UIControlStateNormal];
+                button.showsTouchWhenHighlighted = YES;
+                [button addTarget:self action:@selector(buttonTouched:) forControlEvents:UIControlEventTouchUpInside];
+                button.tag = i;
+                button.frame = CGRectMake(THUMBNAIL_WIDTH * (i % THUMBNAIL_COLS) + PADDING * (i % THUMBNAIL_COLS) + PADDING,
+                                          THUMBNAIL_HEIGHT * (i / THUMBNAIL_COLS) + PADDING * (i / THUMBNAIL_COLS) + PADDING + PADDING_TOP,
+                                          THUMBNAIL_WIDTH,
+                                          THUMBNAIL_HEIGHT);
+                button.imageView.contentMode = UIViewContentModeScaleAspectFill;
+                [button setTitle:[eachObject objectId] forState:UIControlStateReserved];
+                [photoScrollView addSubview:button];
+            }
+            
+            // Size the grid accordingly
+            int rows = images.count / THUMBNAIL_COLS;
+            if (((float)images.count / THUMBNAIL_COLS) - rows != 0) {
+                rows++;
+            }
+            int height = THUMBNAIL_HEIGHT * rows + PADDING * rows + PADDING + PADDING_TOP;
+            
+            photoScrollView.contentSize = CGSizeMake(self.view.frame.size.width, height);
+            photoScrollView.clipsToBounds = YES;
         });
-        
-        UIImage *image = [UIImage imageWithData:imageData];
-        
-        if (image) {
-            button = [UIButton buttonWithType:UIButtonTypeCustom];
-            [button setImage:image forState:UIControlStateNormal];
-            button.showsTouchWhenHighlighted = YES;
-            [button addTarget:self action:@selector(buttonTouched:) forControlEvents:UIControlEventTouchUpInside];
-            button.tag = i;
-            button.frame = CGRectMake(THUMBNAIL_WIDTH * (i % THUMBNAIL_COLS) + PADDING * (i % THUMBNAIL_COLS) + PADDING,
-                                      THUMBNAIL_HEIGHT * (i / THUMBNAIL_COLS) + PADDING * (i / THUMBNAIL_COLS) + PADDING + PADDING_TOP,
-                                      THUMBNAIL_WIDTH,
-                                      THUMBNAIL_HEIGHT);
-            button.imageView.contentMode = UIViewContentModeScaleAspectFill;
-            [button setTitle:[eachObject objectId] forState:UIControlStateReserved];
-            [photoScrollView addSubview:button];
-        }
-        
-	}
-	
-	int rows = images.count / THUMBNAIL_COLS;
-	if (((float)images.count / THUMBNAIL_COLS) - rows != 0) {
-		rows++;
-	}
-	int height = THUMBNAIL_HEIGHT * rows + PADDING * rows + PADDING + PADDING_TOP;
-	
-	photoScrollView.contentSize = CGSizeMake(self.view.frame.size.width, height);
-	photoScrollView.clipsToBounds = YES;
+    });
 }
 
-- (void)buttonTouched:(id)sender{
+- (void)buttonTouched:(id)sender {
     // When picture is touched, open a viewcontroller with the image
     PFObject *theObject = (PFObject *)[allImages objectAtIndex:[sender tag]];
     PFFile *theImage = [theObject objectForKey:@"imageFile"];
     
-    __block NSData *imageData;
-    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-    dispatch_sync(queue,^{
-        imageData = [theImage getData];
-    });
+    NSData *imageData;
+    imageData = [theImage getData];
     UIImage *selectedPhoto = [UIImage imageWithData:imageData];
     PhotoDetailViewController *pdvc = [[PhotoDetailViewController alloc] init];
     
