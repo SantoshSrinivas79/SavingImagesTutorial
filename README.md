@@ -7,7 +7,7 @@ How to Run
 ----------
 
 1. Clone the repository and open the Xcode project.
-2. Add your Parse application id and client key in `main.m`
+2. Add your Parse application id and client key in `AppDelegate.m`
 
 Helper Classes
 ----------
